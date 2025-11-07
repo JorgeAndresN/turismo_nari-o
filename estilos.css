@@ -1,0 +1,303 @@
+/* ========== PANTALLA DE CARGA ========== */
+#loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #FFD700 0%, #008000 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease-out;
+}
+
+#loader-logo {
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  margin-bottom: 30px;
+}
+
+.dots-container {
+  display: flex;
+  gap: 12px;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.dot:nth-child(1) { animation-delay: 0s; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+.dot:nth-child(4) { animation-delay: 0.6s; }
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: scale(1); }
+  30% { transform: scale(1.6); }
+}
+
+/* ========== ESTILOS PRINCIPALES ========== */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: linear-gradient(45deg, #FFD700 0%, #008000 100%);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#contenedor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,.25);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.5s ease-in;
+  pointer-events: none;
+}
+
+#logoCircle {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  overflow: hidden;
+}
+
+#logoCircle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#panel {
+  position: absolute;
+  top: 60px;
+  left: 10px;
+  z-index: 5;
+  background: #fff;
+  padding: 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  width: 200px;
+}
+
+#panel input, #panel button, #panel select {
+  width: 100%;
+  margin: 4px 0;
+  padding: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+#pasoActual {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  background: #fff;
+  padding: 10px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  font-size: 16px;
+  font-weight: 500;
+  display: none;
+}
+
+/* Mensaje de error */
+.error-message {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 4px;
+  background: #ffebee;
+  padding: 4px;
+  border-radius: 3px;
+  display: none;
+}
+
+/* Botón agregar punto */
+#btnAgregarPunto {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+  width: 100%;
+  margin-top: 8px;
+}
+
+#btnAgregarPunto:hover {
+  background: #45a049;
+}
+
+#btnAgregarPunto.activo {
+  background: #f44336;
+}
+
+/* Estilos para lista de puntos */
+#listaPuntos {
+  margin-top: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.punto-item {
+  background: #f5f5f5;
+  padding: 6px;
+  margin: 2px 0;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.punto-item button {
+  background: #ff4444;
+  color: white;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+/* ========== ESTILOS DEL MODAL ========== */
+.modal {
+  display: none; /* IMPORTANTE: Oculto por defecto */
+  position: fixed;
+  z-index: 10000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-contenido {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.modal-cerrar {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 20px;
+}
+
+.modal-cerrar:hover {
+  color: #000;
+}
+
+.modal-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.modal-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s;
+}
+
+.modal-btn:hover {
+  background: #45a049;
+}
+
+.modal-form {
+  margin: 20px 0;
+}
+
+.modal-form label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-form input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.modal-guardar {
+  background: #008000;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* Botón eliminar */
+.modal-eliminar {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  width: 100%;
+  margin-top: 10px;
+  transition: background 0.3s;
+}
+
+.modal-eliminar:hover {
+  background: #d32f2f;
+}

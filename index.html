@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Google Maps – Solo Nariño, Colombia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <!-- Pantalla de carga -->
+  <div id="loader">
+    <div id="loader-logo">LOGO</div>
+    <div class="dots-container">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div id="contenedor">
+    <div id="logoCircle">
+      <img src="https://via.placeholder.com/40" alt="Logo">
+    </div>
+
+    <div id="panel">
+      <input id="origen" placeholder="Origen (tu ubicación)" />
+      <div id="error-origen" class="error-message"></div>
+      
+      <input id="destino" placeholder="Destino (solo Nariño)" />
+      <div id="error-destino" class="error-message"></div>
+      
+      <select id="modo">
+        <option value="DRIVING">Auto</option>
+        <option value="WALKING">Caminar</option>
+        <option value="BICYCLING">Bicicleta</option>
+      </select>
+      
+      <button id="btnAgregarPunto" class="modal-btn">📍 Agregar Punto</button>
+      
+      <div id="listaPuntos" style="margin-top: 10px; max-height: 150px; overflow-y: auto;"></div>
+      
+      <div style="display:flex;gap:4px; margin-top: 8px;">
+        <button onclick="buscarRuta()" style="flex:1">Buscar</button>
+        <button onclick="borrarRuta()" style="flex:1">Borrar</button>
+      </div>
+      <div id="resultado" style="margin-top:6px;font-size:13px"></div>
+    </div>
+    
+    <div id="map"></div>
+    <div id="pasoActual"></div>
+  </div>
+
+  <!-- ===== MODAL (FUERA DEL CONTENEDOR) ===== -->
+  <div id="modalPunto" class="modal">
+    <div class="modal-contenido">
+      <span class="modal-cerrar">&times;</span>
+      <h2 id="modalTitulo" style="margin-top:0; color:#0066cc;"></h2>
+      
+      <div class="modal-menu">
+        <button onclick="verCategoria('hoteles')" class="modal-btn">🏨 Hoteles</button>
+        <button onclick="verCategoria('restaurantes')" class="modal-btn">🍽️ Restaurantes</button>
+        <button onclick="verCategoria('eventos')" class="modal-btn">🎉 Eventos</button>
+      </div>
+      
+      <div class="modal-form">
+        <label>Foto del lugar:</label>
+        <input type="file" id="fotoPunto" accept="image/*" style="margin:10px 0; width:100%;">
+        
+        <label>Pregunta para visitantes:</label>
+        <input type="text" id="preguntaPunto" placeholder="Ej: ¿Qué te gustó más de este lugar?" style="width:100%; padding:8px;">
+      </div>
+      
+      <button onclick="guardarInfoPunto()" class="modal-guardar">Guardar Información</button>
+      <button onclick="eliminarPuntoActual()" class="modal-eliminar">🗑️ Eliminar Punto</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAw2oW9-PCgPMif7m_j4KX93eyIGz92xc&libraries=places,geometry&callback=initMap" async defer></script>
+</body>
+</html>

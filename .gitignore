@@ -1,0 +1,7 @@
+# Ignorar archivos con claves
+.env
+config.js
+config.json
+
+# Ignorar dependencias
+node_modules/
