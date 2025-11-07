@@ -37,9 +37,16 @@
         <option value="BICYCLING">Bicicleta</option>
       </select>
       
-      <button id="btnAgregarPunto" class="modal-btn">📍 Agregar Punto</button>
+      <button id="btnUbicar" class="btn-ubicar" onclick="obtenerUbicacionInicial()">
+        📍 Mi Ubicación
+      </button>
       
-      <div id="listaPuntos" style="margin-top: 10px; max-height: 150px; overflow-y: auto;"></div>
+      <button id="btnVoz" class="btn-voz">
+        <span id="iconoVoz">🎤</span> Hablar
+      </button>
+      <div id="estadoVoz" class="estado-voz"></div>
+      
+      <button id="btnAgregarPunto" class="modal-btn">📍 Agregar Punto</button>
       
       <div style="display:flex;gap:4px; margin-top: 8px;">
         <button onclick="buscarRuta()" style="flex:1">Buscar</button>
@@ -52,7 +59,7 @@
     <div id="pasoActual"></div>
   </div>
 
-  <!-- ===== MODAL (FUERA DEL CONTENEDOR) ===== -->
+  <!-- Modal -->
   <div id="modalPunto" class="modal">
     <div class="modal-contenido">
       <span class="modal-cerrar">&times;</span>
@@ -69,7 +76,7 @@
         <input type="file" id="fotoPunto" accept="image/*" style="margin:10px 0; width:100%;">
         
         <label>Pregunta para visitantes:</label>
-        <input type="text" id="preguntaPunto"  placeholder="Ej: ¿Qué te gustó más de este lugar?" style="width:100%; padding:8px;">
+        <input type="text" id="preguntaPunto" placeholder="Ej: ¿Qué te gustó más de este lugar?" style="width:100%; padding:8px;">
       </div>
       
       <button onclick="guardarInfoPunto()" class="modal-guardar">Guardar Información</button>

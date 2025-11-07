@@ -1,3 +1,21 @@
+/* ========== RESET Y BASE ========== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background: linear-gradient(45deg, #FFD700 0%, #008000 100%);
+  padding: 20px;
+}
+
 /* ========== PANTALLA DE CARGA ========== */
 #loader {
   position: fixed;
@@ -20,6 +38,7 @@
   color: white;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
   margin-bottom: 30px;
+  letter-spacing: 2px;
 }
 
 .dots-container {
@@ -41,23 +60,17 @@
 .dot:nth-child(4) { animation-delay: 0.6s; }
 
 @keyframes bounce {
-  0%, 60%, 100% { transform: scale(1); }
-  30% { transform: scale(1.6); }
+  0%, 60%, 100% { 
+    transform: scale(1); 
+    opacity: 0.7;
+  }
+  30% { 
+    transform: scale(1.6); 
+    opacity: 1;
+  }
 }
 
-/* ========== ESTILOS PRINCIPALES ========== */
-html, body {
-  height: 100%;
-  margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-body {
-  background: linear-gradient(45deg, #FFD700 0%, #008000 100%);
-  padding: 20px;
-  box-sizing: border-box;
-}
-
+/* ========== CONTENEDOR PRINCIPAL ========== */
 #contenedor {
   position: relative;
   width: 100%;
@@ -71,6 +84,7 @@ body {
   pointer-events: none;
 }
 
+/* ========== LOGO ========== */
 #logoCircle {
   position: absolute;
   top: 10px;
@@ -94,31 +108,231 @@ body {
   object-fit: cover;
 }
 
+/* ========== PANEL DE CONTROL ========== */
 #panel {
   position: absolute;
   top: 60px;
   left: 10px;
   z-index: 5;
   background: #fff;
-  padding: 8px;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.3);
-  width: 200px;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.2);
+  width: 220px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
 }
 
-#panel input, #panel button, #panel select {
+#panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#panel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+#panel::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+#panel::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* ========== INPUTS Y SELECTS ========== */
+#panel input,
+#panel select {
   width: 100%;
   margin: 4px 0;
-  padding: 6px;
+  padding: 8px;
   font-size: 14px;
-  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.3s;
 }
 
+#panel input:focus,
+#panel select:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+#panel input::placeholder {
+  color: #999;
+}
+
+/* ========== BOTONES BASE ========== */
+#panel button {
+  width: 100%;
+  margin: 4px 0;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+#panel button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,.15);
+}
+
+#panel button:active {
+  transform: translateY(0);
+}
+
+/* ========== BOTÓN MI UBICACIÓN ========== */
+.btn-ubicar {
+  background: #4CAF50;
+  color: white;
+  margin-top: 8px;
+}
+
+.btn-ubicar:hover {
+  background: #45a049;
+}
+
+.btn-ubicar:active {
+  background: #3d8b40;
+}
+
+/* ========== BOTÓN DE VOZ ========== */
+.btn-voz {
+  background: #2196F3;
+  color: white;
+  margin-top: 8px;
+}
+
+.btn-voz:hover {
+  background: #1976D2;
+}
+
+.btn-voz.escuchando {
+  background: #f44336;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { 
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); 
+  }
+  70% { 
+    box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); 
+  }
+  100% { 
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); 
+  }
+}
+
+/* ========== ESTADO DE VOZ ========== */
+.estado-voz {
+  font-size: 12px;
+  margin-top: 4px;
+  padding: 6px;
+  text-align: center;
+  display: none;
+  font-weight: 600;
+  border-radius: 4px;
+  background: #E3F2FD;
+  color: #1976D2;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ========== BOTÓN AGREGAR PUNTO ========== */
+.modal-btn {
+  background: #FF9800;
+  color: white;
+  margin-top: 8px;
+}
+
+.modal-btn:hover {
+  background: #F57C00;
+}
+
+#btnAgregarPunto.activo {
+  background: #f44336;
+}
+
+#btnAgregarPunto.activo:hover {
+  background: #d32f2f;
+}
+
+/* ========== BOTONES BUSCAR/BORRAR ========== */
+#panel button[onclick="buscarRuta()"] {
+  background: #2196F3;
+  color: white;
+  flex: 1;
+}
+
+#panel button[onclick="buscarRuta()"]:hover {
+  background: #1976D2;
+}
+
+#panel button[onclick="borrarRuta()"] {
+  background: #f44336;
+  color: white;
+  flex: 1;
+}
+
+#panel button[onclick="borrarRuta()"]:hover {
+  background: #d32f2f;
+}
+
+/* ========== RESULTADO ========== */
+#resultado {
+  margin-top: 8px;
+  padding: 8px;
+  font-size: 13px;
+  background: #E8F5E9;
+  border-radius: 4px;
+  border-left: 3px solid #4CAF50;
+}
+
+/* ========== MENSAJES DE ERROR ========== */
+.error-message {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 4px;
+  background: #ffebee;
+  padding: 6px;
+  border-radius: 4px;
+  display: none;
+  border-left: 3px solid #d32f2f;
+  animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========== MAPA ========== */
 #map {
   width: 100%;
   height: 100%;
 }
 
+/* ========== PASO ACTUAL ========== */
 #pasoActual {
   position: absolute;
   bottom: 20px;
@@ -126,78 +340,31 @@ body {
   transform: translateX(-50%);
   z-index: 5;
   background: #fff;
-  padding: 10px 16px;
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  padding: 12px 20px;
+  border-radius: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
   font-size: 16px;
   font-weight: 500;
   display: none;
+  max-width: 80%;
+  text-align: center;
+  animation: slideUp 0.4s;
 }
 
-/* Mensaje de error */
-.error-message {
-  color: #d32f2f;
-  font-size: 12px;
-  margin-top: 4px;
-  background: #ffebee;
-  padding: 4px;
-  border-radius: 3px;
-  display: none;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
-/* Botón agregar punto */
-#btnAgregarPunto {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
-  width: 100%;
-  margin-top: 8px;
-}
-
-#btnAgregarPunto:hover {
-  background: #45a049;
-}
-
-#btnAgregarPunto.activo {
-  background: #f44336;
-}
-
-/* Estilos para lista de puntos */
-#listaPuntos {
-  margin-top: 10px;
-  max-height: 150px;
-  overflow-y: auto;
-  font-size: 12px;
-}
-
-.punto-item {
-  background: #f5f5f5;
-  padding: 6px;
-  margin: 2px 0;
-  border-radius: 4px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.punto-item button {
-  background: #ff4444;
-  color: white;
-  border: none;
-  padding: 2px 6px;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 10px;
-}
-
-/* ========== ESTILOS DEL MODAL ========== */
+/* ========== MODAL ========== */
 .modal {
-  display: none; /* IMPORTANTE: Oculto por defecto */
+  display: none;
   position: fixed;
   z-index: 10000;
   left: 0;
@@ -205,18 +372,36 @@ body {
   width: 100%;
   height: 100%;
   background-color: rgba(0,0,0,0.5);
+  animation: fadeIn 0.3s;
 }
 
 .modal-contenido {
   background-color: #fff;
-  margin: 10% auto;
-  padding: 20px;
+  margin: 5% auto;
+  padding: 24px;
   border-radius: 12px;
   width: 90%;
-  max-width: 400px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  max-width: 450px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  animation: slideDown 0.3s;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
+.modal-contenido::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-contenido::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.modal-contenido::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+/* ========== BOTÓN CERRAR MODAL ========== */
 .modal-cerrar {
   color: #aaa;
   float: right;
@@ -224,12 +409,16 @@ body {
   font-weight: bold;
   cursor: pointer;
   line-height: 20px;
+  transition: color 0.3s;
 }
 
-.modal-cerrar:hover {
+.modal-cerrar:hover,
+.modal-cerrar:focus {
   color: #000;
+  transform: scale(1.1);
 }
 
+/* ========== MENÚ DEL MODAL ========== */
 .modal-menu {
   display: flex;
   flex-direction: column;
@@ -237,67 +426,163 @@ body {
   margin: 20px 0;
 }
 
-.modal-btn {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 12px;
-  border-radius: 6px;
-  cursor: pointer;
+.modal-menu .modal-btn {
+  background: #2196F3;
+  padding: 14px;
   font-size: 16px;
-  transition: background 0.3s;
+  margin: 0;
 }
 
-.modal-btn:hover {
-  background: #45a049;
+.modal-menu .modal-btn:hover {
+  background: #1976D2;
 }
 
+/* ========== FORMULARIO DEL MODAL ========== */
 .modal-form {
   margin: 20px 0;
 }
 
 .modal-form label {
   display: block;
-  margin-top: 10px;
-  font-weight: bold;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-weight: 600;
   color: #333;
+  font-size: 14px;
 }
 
-.modal-form input {
+.modal-form input[type="text"],
+.modal-form input[type="file"] {
   width: 100%;
-  padding: 8px;
-  margin-top: 4px;
+  padding: 10px;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  box-sizing: border-box;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
 }
 
+.modal-form input[type="text"]:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+.modal-form input[type="file"] {
+  padding: 8px;
+  cursor: pointer;
+}
+
+/* ========== BOTONES DEL MODAL ========== */
 .modal-guardar {
-  background: #008000;
+  background: #4CAF50;
   color: white;
   border: none;
-  padding: 12px;
+  padding: 14px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
+  font-weight: 600;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 16px;
+  transition: all 0.3s;
 }
 
-/* Botón eliminar */
+.modal-guardar:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
 .modal-eliminar {
   background: #f44336;
   color: white;
   border: none;
-  padding: 12px;
+  padding: 14px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
+  font-weight: 600;
   width: 100%;
   margin-top: 10px;
-  transition: background 0.3s;
+  transition: all 0.3s;
 }
 
 .modal-eliminar:hover {
   background: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+  
+  #panel {
+    width: 180px;
+    padding: 8px;
+    top: 70px;
+  }
+  
+  #panel input,
+  #panel select,
+  #panel button {
+    font-size: 12px;
+    padding: 6px;
+  }
+  
+  #logoCircle {
+    width: 35px;
+    height: 35px;
+  }
+  
+  #pasoActual {
+    font-size: 14px;
+    padding: 10px 16px;
+    max-width: 90%;
+  }
+  
+  .modal-contenido {
+    width: 95%;
+    margin: 10% auto;
+    padding: 16px;
+  }
+  
+  #loader-logo {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  #panel {
+    width: 160px;
+  }
+  
+  #panel button {
+    padding: 6px;
+    font-size: 11px;
+  }
+  
+  .modal-contenido {
+    margin: 15% auto;
+  }
+}
+
+/* ========== UTILIDADES ========== */
+.hidden {
+  display: none !important;
+}
+
+.visible {
+  display: block !important;
+}
+
+/* ========== LABELS DE MARCADORES ========== */
+.punto-label {
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  font-weight: bold;
 }

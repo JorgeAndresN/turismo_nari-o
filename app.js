@@ -1,22 +1,45 @@
-// ========== VARIABLES GLOBALES ==========
-let map;
-let directionsRenderer;
-let directionsService;
-let origenActual = null;
-let pasos = [];
-let indiceActual = 0;
-let watchId = null;
-let rutaActiva = false;
-let LIMITES_NARIÑO = null;
-let markerUbicacion = null;
-let puntos = []; // Puntos personalizados guardados
-let modoAgregarPunto = false; // Estado del modo
-let puntoSeleccionado = null; // Punto que abrió el modal
+// ========== CONFIGURACIÓN Y CONSTANTES ==========
+const CONFIG = {
+  CENTRO_PASTO: { lat: 1.2136, lng: -77.2811 },
+  LIMITES_NARINO: {
+    southwest: { lat: 0.5, lng: -78.9 },  // Más amplio
+    northeast: { lat: 2.0, lng: -76.5 }   // Más amplio
+  },
+  DISTANCIA_PASO: 50, // metros para cambiar instrucción
+  ZOOM_UBICACION: 18,
+  ZOOM_INICIAL: 14,
+  MODO_DEBUG: true // Para ver coordenadas en consola
+};
 
-const CENTRO_PASTO = { lat: 1.213, lng: -77.278 };
+// ========== ESTADO DE LA APLICACIÓN ==========
+const Estado = {
+  map: null,
+  directionsRenderer: null,
+  directionsService: null,
+  origenActual: null,
+  pasos: [],
+  indiceActual: 0,
+  watchId: null,
+  rutaActiva: false,
+  rutaPreparada: false, // Nueva bandera para saber si hay ruta lista
+  LIMITES_NARINO: null,
+  markerUbicacion: null,
+  puntos: [], // Almacenamiento en memoria
+  modoAgregarPunto: false,
+  puntoSeleccionado: null,
+  reconocimiento: null,
+  reconocimientoActivo: false
+};
 
-// ========== TRANSICIÓN DE CARGA (3 SEGUNDOS) ==========
-document.addEventListener('DOMContentLoaded', () => {
+// ========== INICIALIZACIÓN ==========
+document.addEventListener('DOMContentLoaded', iniciarApp);
+
+function iniciarApp() {
+  mostrarPantallaCarga();
+  configurarEventListeners();
+}
+
+function mostrarPantallaCarga() {
   setTimeout(() => {
     const loader = document.getElementById('loader');
     const contenedor = document.getElementById('contenedor');
@@ -27,167 +50,708 @@ document.addEventListener('DOMContentLoaded', () => {
       contenedor.style.opacity = '1';
       contenedor.style.pointerEvents = 'auto';
       
-      if (map && typeof google !== 'undefined') {
-        google.maps.event.trigger(map, 'resize');
-        map.setCenter(CENTRO_PASTO);
+      if (Estado.map && typeof google !== 'undefined') {
+        google.maps.event.trigger(Estado.map, 'resize');
+        Estado.map.setCenter(CONFIG.CENTRO_PASTO);
       }
     }, 500);
   }, 3000);
-});
-
-// ========== GUARDAR Y CARGAR PUNTOS DESDE LOCALSTORAGE ==========
-function guardarPuntosEnStorage() {
-  localStorage.setItem('puntosNariño', JSON.stringify(puntos));
 }
 
-function cargarPuntosDesdeStorage() {
-  const puntosGuardados = localStorage.getItem('puntosNariño');
-  if (puntosGuardados) {
-    puntos = JSON.parse(puntosGuardados);
-    // Crear marcadores para los puntos guardados
-    puntos.forEach(punto => {
-      crearMarcadorPunto(punto);
-    });
-  }
-}
-
-function crearMarcadorPunto(punto) {
-  const marcador = new google.maps.Marker({
-    position: { lat: punto.lat, lng: punto.lng },
-    map: map,
-    title: punto.nombre,
-    icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-    label: {
-      text: punto.nombre,
-      color: "#0066cc",
-      fontSize: "12px",
-      fontWeight: "bold",
-      className: "punto-label"
-    }
-  });
+function configurarEventListeners() {
+  document.getElementById('btnAgregarPunto')?.addEventListener('click', toggleModoAgregarPunto);
+  document.getElementById('btnVoz')?.addEventListener('click', manejarBotonVoz);
+  document.getElementById('btnMiUbicacion')?.addEventListener('click', actualizarMiUbicacion);
+  document.querySelector('.modal-cerrar')?.addEventListener('click', cerrarModal);
   
-  marcador.addListener("dblclick", () => {
-    abrirModalPunto(punto);
+  window.addEventListener('click', (e) => {
+    const modal = document.getElementById('modalPunto');
+    if (e.target === modal) cerrarModal();
   });
-  
-  punto.marcador = marcador;
-  return marcador;
 }
 
 // ========== INICIALIZACIÓN DEL MAPA ==========
 function initMap() {
-  LIMITES_NARIÑO = new google.maps.LatLngBounds(
-    { lat: 0.7, lng: -78.5 },
-    { lat: 1.8, lng: -76.8 }
+  Estado.LIMITES_NARINO = new google.maps.LatLngBounds(
+    CONFIG.LIMITES_NARINO.southwest,
+    CONFIG.LIMITES_NARINO.northeast
   );
 
-  map = new google.maps.Map(document.getElementById("map"), {
-    zoom: 14,
-    center: CENTRO_PASTO,
+  Estado.map = new google.maps.Map(document.getElementById("map"), {
+    zoom: CONFIG.ZOOM_INICIAL,
+    center: CONFIG.CENTRO_PASTO,
     mapTypeControl: true,
     streetViewControl: true,
     fullscreenControl: true,
     restriction: {
-      latLngBounds: LIMITES_NARIÑO,
+      latLngBounds: Estado.LIMITES_NARINO,
       strictBounds: false
     }
   });
 
-  directionsService = new google.maps.DirectionsService();
-  directionsRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: false });
-  directionsRenderer.setMap(map);
+  Estado.directionsService = new google.maps.DirectionsService();
+  Estado.directionsRenderer = new google.maps.DirectionsRenderer({ 
+    suppressMarkers: false 
+  });
+  Estado.directionsRenderer.setMap(Estado.map);
 
-  const opcionesNariño = {
+  configurarAutocomplete();
+  configurarEventosMapa();
+  inicializarReconocimientoVoz();
+  cargarPuntosGuardados();
+  obtenerUbicacionInicial();
+}
+
+function configurarAutocomplete() {
+  const opcionesNarino = {
     types: ["geocode"],
     componentRestrictions: { country: "co" },
-    bounds: LIMITES_NARIÑO,
+    bounds: Estado.LIMITES_NARINO,
     strictBounds: true
   };
 
-  const autoOrigen = new google.maps.places.Autocomplete(document.getElementById("origen"), opcionesNariño);
-  const autoDestino = new google.maps.places.Autocomplete(document.getElementById("destino"), opcionesNariño);
+  const autoOrigen = new google.maps.places.Autocomplete(
+    document.getElementById("origen"), 
+    opcionesNarino
+  );
+  const autoDestino = new google.maps.places.Autocomplete(
+    document.getElementById("destino"), 
+    opcionesNarino
+  );
 
   autoOrigen.addListener('place_changed', () => {
-    const lugar = autoOrigen.getPlace();
-    validarYLimpiar(lugar, 'origen', 'error-origen');
+    validarLugar(autoOrigen.getPlace(), 'origen', 'error-origen');
   });
 
   autoDestino.addListener('place_changed', () => {
-    const lugar = autoDestino.getPlace();
-    validarYLimpiar(lugar, 'destino', 'error-destino');
+    validarLugar(autoDestino.getPlace(), 'destino', 'error-destino');
   });
+}
 
-  // Botón de "Mi ubicación"
-  const miUbicBtn = document.createElement("button");
-  miUbicBtn.textContent = "📍 Mi ubicación";
-  miUbicBtn.style.marginTop = "4px";
-  miUbicBtn.onclick = ponerMiUbicacion;
-  document.getElementById("panel").appendChild(miUbicBtn);
-
-  // Botón para agregar puntos (TEMPORAL)
-  const btnAgregarPunto = document.getElementById("btnAgregarPunto");
-  btnAgregarPunto.addEventListener('click', toggleModoAgregarPunto);
-
-  // Evento clic en el mapa
-  map.addListener("click", (e) => {
-    if (modoAgregarPunto) {
+function configurarEventosMapa() {
+  // Clic simple para agregar puntos
+  Estado.map.addListener("click", (e) => {
+    if (Estado.modoAgregarPunto) {
       agregarPuntoPersonalizado(e.latLng);
     }
   });
 
-  // Doble clic para origen/destino
-  map.addListener("dblclick", (e) => {
-    if (rutaActiva || modoAgregarPunto) return;
+  // Doble clic para establecer origen/destino
+  Estado.map.addListener("dblclick", (e) => {
+    if (Estado.rutaActiva || Estado.modoAgregarPunto) return;
     
-    if (!LIMITES_NARIÑO.contains(e.latLng)) {
-      alert("⚠️ Por favor, seleccioná una ubicación dentro del departamento de Nariño, Colombia.");
+    if (!Estado.LIMITES_NARINO.contains(e.latLng)) {
+      mostrarError("Selecciona una ubicación dentro de Nariño, Colombia.");
       return;
     }
     
     const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-    if (!origenActual) {
-      origenActual = pos;
-      colocarOrigenClic(pos);
+    
+    if (!Estado.origenActual) {
+      establecerOrigen(pos);
     } else {
-      document.getElementById("destino").value = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
-      map.setCenter(pos);
-      map.setZoom(16);
+      establecerDestino(pos);
     }
   });
-
-  // CARGAR PUNTOS GUARDADOS AL INICIAR
-  cargarPuntosDesdeStorage();
-
-  ponerMiUbicacion();
 }
 
-// ========== MODO AGREGAR PUNTO (TEMPORAL) ==========
-function toggleModoAgregarPunto() {
-  modoAgregarPunto = !modoAgregarPunto;
-  const btn = document.getElementById("btnAgregarPunto");
+// ========== GESTIÓN DE UBICACIÓN ==========
+function obtenerUbicacionInicial() {
+  if (!navigator.geolocation) {
+    mostrarError("Tu navegador no soporta geolocalización");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const pos = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      };
+      
+      // Debug: mostrar coordenadas en consola
+      if (CONFIG.MODO_DEBUG) {
+        console.log('📍 Tu ubicación:', pos);
+        console.log('📏 Límites Nariño:', CONFIG.LIMITES_NARINO);
+      }
+      
+      const userLatLng = new google.maps.LatLng(pos.lat, pos.lng);
+      
+      if (!Estado.LIMITES_NARINO.contains(userLatLng)) {
+        console.warn('⚠️ Ubicación fuera de límites:', pos);
+        // Permitir de todos modos si estás cerca
+        const distanciaPasto = google.maps.geometry.spherical.computeDistanceBetween(
+          userLatLng,
+          new google.maps.LatLng(CONFIG.CENTRO_PASTO.lat, CONFIG.CENTRO_PASTO.lng)
+        );
+        
+        if (distanciaPasto < 100000) { // 100km de Pasto
+          console.log('✅ Dentro de radio de 100km de Pasto');
+          establecerUbicacionActual(pos);
+          return;
+        }
+        
+        mostrarError("Tu ubicación no está en Nariño. Ingresa un origen manualmente.");
+      } else {
+        establecerUbicacionActual(pos);
+      }
+    },
+    (error) => manejarErrorGeolocalizacion(error),
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+function establecerUbicacionActual(pos) {
+  if (Estado.markerUbicacion) {
+    Estado.markerUbicacion.setMap(null);
+  }
   
-  if (modoAgregarPunto) {
-    btn.textContent = "❌ Cancelar";
-    btn.classList.add("activo");
-    map.setOptions({ draggableCursor: 'crosshair' });
-  } else {
-    btn.textContent = "📍 Agregar Punto";
-    btn.classList.remove("activo");
-    map.setOptions({ draggableCursor: null });
+  Estado.markerUbicacion = new google.maps.Marker({
+    position: pos,
+    map: Estado.map,
+    title: "Tu ubicación",
+    icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+  });
+  
+  Estado.origenActual = pos;
+  
+  // Geocodificar para mostrar dirección legible
+  new google.maps.Geocoder().geocode({ location: pos }, (results, status) => {
+    if (status === "OK" && results[0]) {
+      document.getElementById("origen").value = results[0].formatted_address;
+    } else {
+      document.getElementById("origen").value = 
+        `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+    }
+  });
+  
+  Estado.map.setCenter(pos);
+  Estado.map.setZoom(CONFIG.ZOOM_UBICACION);
+}
+
+function establecerOrigen(pos) {
+  Estado.origenActual = pos;
+  document.getElementById("origen").value = 
+    `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+  
+  new google.maps.Marker({
+    position: pos,
+    map: Estado.map,
+    title: "Origen",
+    icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+  });
+  
+  Estado.map.setCenter(pos);
+  Estado.map.setZoom(16);
+}
+
+function establecerDestino(pos) {
+  document.getElementById("destino").value = 
+    `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+  Estado.map.setCenter(pos);
+  Estado.map.setZoom(16);
+}
+
+function manejarErrorGeolocalizacion(error) {
+  const mensajes = {
+    [error.PERMISSION_DENIED]: "Permiso de geolocalización denegado.",
+    [error.POSITION_UNAVAILABLE]: "Información de ubicación no disponible.",
+    [error.TIMEOUT]: "La solicitud de ubicación expiró."
+  };
+  
+  mostrarError(mensajes[error.code] || "No se pudo obtener tu ubicación");
+}
+
+// Función para actualizar ubicación manualmente (botón "Mi ubicación")
+function actualizarMiUbicacion() {
+  if (!navigator.geolocation) {
+    mostrarError("Tu navegador no soporta geolocalización");
+    return;
+  }
+
+  // Mostrar feedback visual
+  const btn = document.getElementById('btnMiUbicacion');
+  const textoOriginal = btn ? btn.textContent : '';
+  if (btn) btn.textContent = '🔄 Obteniendo...';
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const pos = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      };
+      
+      // Debug
+      if (CONFIG.MODO_DEBUG) {
+        console.log('📍 Ubicación actualizada:', pos);
+      }
+      
+      const userLatLng = new google.maps.LatLng(pos.lat, pos.lng);
+      
+      // Validación más flexible
+      if (!Estado.LIMITES_NARINO.contains(userLatLng)) {
+        const distanciaPasto = google.maps.geometry.spherical.computeDistanceBetween(
+          userLatLng,
+          new google.maps.LatLng(CONFIG.CENTRO_PASTO.lat, CONFIG.CENTRO_PASTO.lng)
+        );
+        
+        if (distanciaPasto < 100000) { // 100km de Pasto
+          console.log('✅ Ubicación aceptada (cerca de Pasto)');
+          establecerUbicacionActual(pos);
+          if (btn) btn.textContent = textoOriginal;
+          return;
+        }
+        
+        mostrarError("Tu ubicación no está en Nariño. Ingresa un origen manualmente.");
+        if (btn) btn.textContent = textoOriginal;
+        return;
+      }
+      
+      establecerUbicacionActual(pos);
+      if (btn) btn.textContent = textoOriginal;
+    },
+    (error) => {
+      manejarErrorGeolocalizacion(error);
+      if (btn) btn.textContent = textoOriginal;
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+// ========== VALIDACIÓN ==========
+function validarLugar(lugar, campo, errorId) {
+  const errorDiv = document.getElementById(errorId);
+  errorDiv.style.display = 'none';
+  
+  if (!lugar.geometry) {
+    mostrarErrorCampo(errorId, "No se pudo obtener la ubicación");
+    document.getElementById(campo).value = '';
+    return false;
+  }
+
+  const latLng = new google.maps.LatLng(
+    lugar.geometry.location.lat(),
+    lugar.geometry.location.lng()
+  );
+
+  if (!Estado.LIMITES_NARINO.contains(latLng)) {
+    mostrarErrorCampo(errorId, "Solo ubicaciones en Nariño, Colombia");
+    document.getElementById(campo).value = '';
+    return false;
+  }
+
+  // Validar componente administrativo
+  const esNarino = lugar.address_components?.some(component =>
+    component.types.includes("administrative_area_level_1") && 
+    component.long_name.toLowerCase().includes("nariño")
+  );
+
+  if (!esNarino) {
+    mostrarErrorCampo(errorId, "Solo ubicaciones en Nariño permitidas");
+    document.getElementById(campo).value = '';
+    return false;
+  }
+  
+  return true;
+}
+
+function mostrarErrorCampo(errorId, mensaje) {
+  const errorDiv = document.getElementById(errorId);
+  errorDiv.textContent = "⚠️ " + mensaje;
+  errorDiv.style.display = 'block';
+}
+
+function mostrarError(mensaje) {
+  alert("⚠️ " + mensaje);
+}
+
+// ========== BÚSQUEDA DE RUTAS ==========
+function buscarRuta() {
+  const origenTexto = document.getElementById("origen").value.trim();
+  const destinoTexto = document.getElementById("destino").value.trim();
+  const modo = document.getElementById("modo").value;
+
+  if (!origenTexto || !destinoTexto) {
+    mostrarError("Completa origen y destino");
+    return;
+  }
+
+  Estado.directionsService.route(
+    {
+      origin: origenTexto,
+      destination: destinoTexto,
+      travelMode: google.maps.TravelMode[modo],
+      unitSystem: google.maps.UnitSystem.METRIC,
+      language: "es-419",
+    },
+    (result, status) => {
+      if (status === "OK") {
+        mostrarRuta(result);
+      } else {
+        document.getElementById("resultado").innerHTML = 
+          "❌ No se encontró la ruta.";
+        detenerSeguimiento();
+        Estado.rutaActiva = false;
+        Estado.rutaPreparada = false;
+      }
+    }
+  );
+}
+
+function mostrarRuta(result) {
+  Estado.directionsRenderer.setDirections(result);
+  
+  const leg = result.routes[0].legs[0];
+  const tiempoTexto = `✅ Llegas en ${leg.duration.text}`;
+  const distanciaTexto = `📏 Distancia: ${leg.distance.text}`;
+  
+  document.getElementById("resultado").innerHTML =
+    `<b>${tiempoTexto}</b><br>${distanciaTexto}`;
+  
+  // Mostrar mensaje de éxito en el estado de voz
+  mostrarEstadoVoz(`✅ Ruta encontrada: ${leg.duration.text}`, 'exito');
+  
+  iniciarSeguimientoDePasos(result.routes[0].legs);
+  Estado.rutaActiva = true;
+  Estado.rutaPreparada = false;
+}
+
+function borrarRuta() {
+  Estado.directionsRenderer.setDirections({ routes: [] });
+  detenerSeguimiento();
+  
+  Estado.rutaActiva = false;
+  Estado.rutaPreparada = false;
+  
+  document.getElementById("resultado").innerHTML = "";
+  document.getElementById("destino").value = "";
+  document.getElementById("error-origen").style.display = 'none';
+  document.getElementById("error-destino").style.display = 'none';
+  
+  if (Estado.markerUbicacion) {
+    Estado.markerUbicacion.setMap(null);
+    Estado.markerUbicacion = null;
+  }
+  
+  Estado.origenActual = null;
+}
+
+// ========== SEGUIMIENTO DE PASOS ==========
+function iniciarSeguimientoDePasos(legs) {
+  Estado.pasos = [];
+  
+  legs.forEach((leg) => {
+    leg.steps.forEach((step) => {
+      Estado.pasos.push({
+        lat: step.end_location.lat(),
+        lng: step.end_location.lng(),
+        instruccion: step.instructions,
+        distancia: step.distance.text,
+      });
+    });
+  });
+  
+  Estado.indiceActual = 0;
+  mostrarPasoActual();
+
+  if (Estado.watchId) {
+    navigator.geolocation.clearWatch(Estado.watchId);
+  }
+  
+  Estado.watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      verificarSiguientePaso(pos.coords.latitude, pos.coords.longitude);
+    },
+    () => {},
+    { enableHighAccuracy: true, timeout: 3000, maximumAge: 1000 }
+  );
+}
+
+function mostrarPasoActual() {
+  if (Estado.pasos.length === 0) return;
+  
+  const paso = Estado.pasos[Estado.indiceActual];
+  const icono = obtenerIconoInstruccion(paso.instruccion);
+  
+  document.getElementById("pasoActual").innerHTML =
+    `${icono} ${paso.instruccion} <span style="color:#666">(${paso.distancia})</span>`;
+  document.getElementById("pasoActual").style.display = "block";
+}
+
+function verificarSiguientePaso(lat, lng) {
+  if (Estado.indiceActual >= Estado.pasos.length - 1) return;
+  
+  const siguiente = Estado.pasos[Estado.indiceActual + 1];
+  const distancia = google.maps.geometry.spherical.computeDistanceBetween(
+    new google.maps.LatLng(lat, lng),
+    new google.maps.LatLng(siguiente.lat, siguiente.lng)
+  );
+  
+  if (distancia < CONFIG.DISTANCIA_PASO) {
+    Estado.indiceActual++;
+    mostrarPasoActual();
   }
 }
 
-// ========== AGREGAR PUNTO PERSONALIZADO ==========
+function obtenerIconoInstruccion(texto) {
+  const lower = texto.toLowerCase();
+  if (lower.includes("izquierda")) return "⬅";
+  if (lower.includes("derecha")) return "➡";
+  if (lower.includes("continúe") || lower.includes("siga")) return "⬆";
+  if (lower.includes("recto")) return "⬆";
+  if (lower.includes("u")) return "🔄";
+  if (lower.includes("salida")) return "↗";
+  return "➡";
+}
+
+function detenerSeguimiento() {
+  if (Estado.watchId) {
+    navigator.geolocation.clearWatch(Estado.watchId);
+    Estado.watchId = null;
+  }
+  document.getElementById("pasoActual").style.display = "none";
+}
+
+// ========== RECONOCIMIENTO DE VOZ ==========
+function inicializarReconocimientoVoz() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    console.warn('Reconocimiento de voz no soportado');
+    const btnVoz = document.getElementById('btnVoz');
+    if (btnVoz) btnVoz.style.display = 'none';
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  Estado.reconocimiento = new SpeechRecognition();
+  
+  Estado.reconocimiento.continuous = false;
+  Estado.reconocimiento.interimResults = false;
+  Estado.reconocimiento.lang = 'es-CO';
+  Estado.reconocimiento.maxAlternatives = 1;
+
+  Estado.reconocimiento.onstart = () => {
+    Estado.reconocimientoActivo = true;
+    actualizarEstadoBotonVoz(true);
+    mostrarEstadoVoz('Escuchando...', 'info');
+  };
+
+  Estado.reconocimiento.onresult = (event) => {
+    const comando = event.results[0][0].transcript.toLowerCase().trim();
+    procesarComandoVoz(comando);
+  };
+
+  Estado.reconocimiento.onerror = (event) => {
+    const mensajes = {
+      'no-speech': 'No se detectó voz',
+      'network': 'Error de conexión',
+      'not-allowed': 'Permiso denegado'
+    };
+    mostrarEstadoVoz(mensajes[event.error] || 'Error: ' + event.error, 'error');
+  };
+
+  Estado.reconocimiento.onend = () => {
+    Estado.reconocimientoActivo = false;
+    actualizarEstadoBotonVoz(false);
+    setTimeout(() => {
+      document.getElementById('estadoVoz').style.display = 'none';
+    }, 2000);
+  };
+}
+
+function manejarBotonVoz() {
+  if (!Estado.reconocimiento) {
+    inicializarReconocimientoVoz();
+  }
+  
+  if (!Estado.reconocimientoActivo) {
+    Estado.reconocimiento.start();
+  } else {
+    Estado.reconocimiento.stop();
+  }
+}
+
+function actualizarEstadoBotonVoz(escuchando) {
+  const btn = document.getElementById('btnVoz');
+  const icono = document.getElementById('iconoVoz');
+  
+  if (escuchando) {
+    btn.classList.add('escuchando');
+    icono.textContent = '🔴';
+  } else {
+    btn.classList.remove('escuchando');
+    icono.textContent = '🎤';
+  }
+}
+
+function procesarComandoVoz(texto) {
+  mostrarEstadoVoz(`Procesando: "${texto}"`, 'procesando');
+  
+  const patrones = [
+    /(?:quiero ir|ir|ruta|como llegar) a (.+?)(?: en | a | por | usando )?(bici|bicicleta|caminar|caminando|pie|auto|carro|moto)?$/i,
+    /(?:quiero ir|ir|ruta|como llegar) a (.+)$/i
+  ];
+  
+  let destino = null;
+  let modoTexto = null;
+  
+  for (const patron of patrones) {
+    const match = texto.match(patron);
+    if (match) {
+      destino = match[1].trim();
+      modoTexto = match[2] ? match[2].trim() : null;
+      break;
+    }
+  }
+  
+  if (!destino) {
+    mostrarEstadoVoz('No entendí el destino. Intenta: "Ir a Pasto en bici"', 'error');
+    return;
+  }
+  
+  const modo = obtenerModoTransporte(modoTexto);
+  prepararRutaVoz(destino, modo);
+}
+
+function obtenerModoTransporte(modoTexto) {
+  if (!modoTexto) return 'DRIVING';
+  
+  const modosMap = {
+    'bici': 'BICYCLING',
+    'bicicleta': 'BICYCLING',
+    'caminar': 'WALKING',
+    'caminando': 'WALKING',
+    'pie': 'WALKING',
+    'auto': 'DRIVING',
+    'carro': 'DRIVING',
+    'moto': 'DRIVING'
+  };
+  
+  for (const [clave, valor] of Object.entries(modosMap)) {
+    if (modoTexto.includes(clave)) {
+      return valor;
+    }
+  }
+  
+  return 'DRIVING';
+}
+
+function prepararRutaVoz(destinoTexto, modo) {
+  const geocoder = new google.maps.Geocoder();
+  
+  geocoder.geocode({ 
+    address: destinoTexto + ', Nariño, Colombia',
+    bounds: Estado.LIMITES_NARINO,
+    componentRestrictions: { country: 'co' }
+  }, (results, status) => {
+    if (status === 'OK' && results.length > 0) {
+      const lugar = results[0];
+      const latLng = new google.maps.LatLng(
+        lugar.geometry.location.lat(),
+        lugar.geometry.location.lng()
+      );
+      
+      if (Estado.LIMITES_NARINO.contains(latLng)) {
+        // Establecer destino y modo
+        document.getElementById('destino').value = lugar.formatted_address;
+        document.getElementById('modo').value = modo;
+        
+        // Si no hay origen, establecerlo primero
+        if (!Estado.origenActual) {
+          mostrarEstadoVoz('🔍 Obteniendo tu ubicación...', 'info');
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const pos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              establecerUbicacionActual(pos);
+              
+              // Esperar un momento y buscar la ruta automáticamente
+              setTimeout(() => {
+                mostrarEstadoVoz(`🚀 Buscando ruta a ${destinoTexto}...`, 'info');
+                buscarRuta();
+              }, 500);
+            },
+            () => {
+              mostrarEstadoVoz('❌ No se pudo obtener tu ubicación', 'error');
+            }
+          );
+        } else {
+          // Si ya hay origen, buscar ruta directamente
+          mostrarEstadoVoz(`🚀 Buscando ruta a ${destinoTexto}...`, 'info');
+          setTimeout(() => {
+            buscarRuta();
+          }, 500);
+        }
+      } else {
+        mostrarEstadoVoz('❌ El destino no está en Nariño', 'error');
+      }
+    } else {
+      mostrarEstadoVoz(`❌ No se encontró "${destinoTexto}"`, 'error');
+    }
+  });
+}
+
+function mostrarEstadoVoz(mensaje, tipo) {
+  const estado = document.getElementById('estadoVoz');
+  estado.textContent = mensaje;
+  estado.style.display = 'block';
+  
+  const colores = {
+    'error': '#d32f2f',
+    'exito': '#388E3C',
+    'info': '#1976D2',
+    'procesando': '#F57C00'
+  };
+  
+  estado.style.color = colores[tipo] || '#1976D2';
+  
+  // Tiempo de espera según el tipo
+  const tiempos = {
+    'error': 4000,
+    'exito': 3000,
+    'info': 2000,
+    'procesando': 10000 // Más tiempo para procesos largos
+  };
+  
+  // Auto-ocultar después del tiempo correspondiente
+  // No ocultar si es 'info' de búsqueda (se ocultará cuando termine)
+  if (tipo !== 'procesando' || !mensaje.includes('Buscando')) {
+    setTimeout(() => {
+      // Solo ocultar si el mensaje no ha cambiado
+      if (estado.textContent === mensaje) {
+        estado.style.display = 'none';
+      }
+    }, tiempos[tipo] || 3000);
+  }
+}
+
+// ========== GESTIÓN DE PUNTOS PERSONALIZADOS ==========
+function toggleModoAgregarPunto() {
+  Estado.modoAgregarPunto = !Estado.modoAgregarPunto;
+  const btn = document.getElementById("btnAgregarPunto");
+  
+  if (Estado.modoAgregarPunto) {
+    btn.textContent = "❌ Cancelar";
+    btn.classList.add("activo");
+    Estado.map.setOptions({ draggableCursor: 'crosshair' });
+  } else {
+    btn.textContent = "📍 Agregar Punto";
+    btn.classList.remove("activo");
+    Estado.map.setOptions({ draggableCursor: null });
+  }
+}
+
 function agregarPuntoPersonalizado(latLng) {
-  if (!LIMITES_NARIÑO.contains(latLng)) {
-    alert("⚠️ Solo se pueden agregar puntos dentro de Nariño, Colombia.");
-    toggleModoAgregarPunto(); // Salir del modo
+  if (!Estado.LIMITES_NARINO.contains(latLng)) {
+    mostrarError("Solo se pueden agregar puntos dentro de Nariño, Colombia.");
+    toggleModoAgregarPunto();
     return;
   }
 
   const nombre = prompt("Nombre del punto:");
   if (!nombre || nombre.trim() === "") {
-    toggleModoAgregarPunto(); // Salir del modo si cancela
+    toggleModoAgregarPunto();
     return;
   }
 
@@ -200,351 +764,103 @@ function agregarPuntoPersonalizado(latLng) {
     pregunta: null
   };
 
-  puntos.push(punto);
-  
-  // GUARDAR EN LOCALSTORAGE
-  guardarPuntosEnStorage();
-
-  // Crear marcador
+  Estado.puntos.push(punto);
   crearMarcadorPunto(punto);
-
-  // Volver al modo normal
   toggleModoAgregarPunto();
   
-  alert(`✅ Punto "${punto.nombre}" agregado correctamente`);
+  mostrarError(`Punto "${punto.nombre}" agregado correctamente`);
 }
 
-// ========== MODAL PARA MENÚ DE PUNTO ==========
+function crearMarcadorPunto(punto) {
+  const marcador = new google.maps.Marker({
+    position: { lat: punto.lat, lng: punto.lng },
+    map: Estado.map,
+    title: punto.nombre,
+    icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+    label: {
+      text: punto.nombre,
+      color: "#0066cc",
+      fontSize: "12px",
+      fontWeight: "bold"
+    }
+  });
+  
+  marcador.addListener("dblclick", () => {
+    abrirModalPunto(punto);
+  });
+  
+  punto.marcador = marcador;
+  return marcador;
+}
+
+function cargarPuntosGuardados() {
+  // En memoria - los puntos ya están en Estado.puntos
+  Estado.puntos.forEach(punto => {
+    crearMarcadorPunto(punto);
+  });
+}
+
+// ========== MODAL DE PUNTOS ==========
 function abrirModalPunto(punto) {
-  puntoSeleccionado = punto;
+  Estado.puntoSeleccionado = punto;
   const modal = document.getElementById("modalPunto");
   const titulo = document.getElementById("modalTitulo");
   
   titulo.textContent = punto.nombre;
-  
-  // Cargar datos si existen
   document.getElementById("fotoPunto").value = "";
   document.getElementById("preguntaPunto").value = punto.pregunta || "";
   
   modal.style.display = "block";
 }
 
-// Cerrar modal
-document.addEventListener('DOMContentLoaded', () => {
-  const modal = document.getElementById("modalPunto");
-  const cerrar = document.querySelector(".modal-cerrar");
-  
-  if (cerrar) {
-    cerrar.onclick = () => {
-      modal.style.display = "none";
-    };
-  }
-  
-  window.onclick = (event) => {
-    if (event.target === modal) {
-      modal.style.display = "none";
-    }
-  };
-});
+function cerrarModal() {
+  document.getElementById("modalPunto").style.display = "none";
+}
 
-// ========== FUNCIONES DEL MODAL ==========
 function verCategoria(categoria) {
-  // Aquí iría la lógica para mostrar hoteles, restaurantes o eventos
-  alert(`Mostrando ${categoria} para: ${puntoSeleccionado.nombre}`);
+  alert(`Mostrando ${categoria} para: ${Estado.puntoSeleccionado.nombre}`);
 }
 
 function guardarInfoPunto() {
-  if (!puntoSeleccionado) return;
+  if (!Estado.puntoSeleccionado) return;
   
   const pregunta = document.getElementById("preguntaPunto").value;
   const fotoInput = document.getElementById("fotoPunto");
   
-  puntoSeleccionado.pregunta = pregunta;
+  Estado.puntoSeleccionado.pregunta = pregunta;
   
-  // Manejar foto (guardar referencia)
   if (fotoInput.files && fotoInput.files[0]) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      puntoSeleccionado.foto = e.target.result;
-      guardarPuntosEnStorage(); // GUARDAR CAMBIOS
+      Estado.puntoSeleccionado.foto = e.target.result;
       alert("✅ Información guardada correctamente");
-      document.getElementById("modalPunto").style.display = "none";
+      cerrarModal();
     };
     reader.readAsDataURL(fotoInput.files[0]);
   } else {
-    guardarPuntosEnStorage(); // GUARDAR CAMBIOS
     alert("✅ Información guardada correctamente");
-    document.getElementById("modalPunto").style.display = "none";
+    cerrarModal();
   }
 }
 
-// ========== ELIMINAR PUNTO ACTUAL ==========
 function eliminarPuntoActual() {
-  if (!puntoSeleccionado) {
-    alert("❌ No hay punto seleccionado");
+  if (!Estado.puntoSeleccionado) {
+    mostrarError("No hay punto seleccionado");
     return;
   }
   
-  // Confirmación de eliminación
-  const confirmar = confirm(`¿Estás seguro que querés eliminar el punto "${puntoSeleccionado.nombre}"?`);
+  const confirmar = confirm(
+    `¿Estás seguro que querés eliminar el punto "${Estado.puntoSeleccionado.nombre}"?`
+  );
+  
   if (!confirmar) return;
   
-  // Eliminar marcador del mapa
-  if (puntoSeleccionado.marcador) {
-    puntoSeleccionado.marcador.setMap(null);
+  if (Estado.puntoSeleccionado.marcador) {
+    Estado.puntoSeleccionado.marcador.setMap(null);
   }
   
-  // Eliminar del array de puntos
-  puntos = puntos.filter(p => p.id !== puntoSeleccionado.id);
+  Estado.puntos = Estado.puntos.filter(p => p.id !== Estado.puntoSeleccionado.id);
+  cerrarModal();
   
-  // Guardar cambios en localStorage
-  guardarPuntosEnStorage();
-  
-  // Cerrar modal
-  document.getElementById("modalPunto").style.display = "none";
-  
-  alert(`✅ Punto "${puntoSeleccionado.nombre}" eliminado correctamente`);
+  alert(`✅ Punto "${Estado.puntoSeleccionado.nombre}" eliminado correctamente`);
 }
-
-// ========== RESTO DE FUNCIONES ==========
-function validarYLimpiar(lugar, campo, errorId) {
-  const errorDiv = document.getElementById(errorId);
-  errorDiv.style.display = 'none';
-  
-  if (!lugar.geometry) {
-    errorDiv.textContent = "No se pudo obtener la ubicación";
-    errorDiv.style.display = 'block';
-    document.getElementById(campo).value = '';
-    return;
-  }
-
-  const lat = lugar.geometry.location.lat();
-  const lng = lugar.geometry.location.lng();
-  const latLng = new google.maps.LatLng(lat, lng);
-
-  if (!LIMITES_NARIÑO.contains(latLng)) {
-    errorDiv.textContent = "⚠️ Solo se permiten ubicaciones en el departamento de Nariño, Colombia";
-    errorDiv.style.display = 'block';
-    document.getElementById(campo).value = '';
-    return;
-  }
-
-  let esNariño = false;
-  if (lugar.address_components) {
-    for (let component of lugar.address_components) {
-      if (component.types.includes("administrative_area_level_1") && 
-          component.long_name.toLowerCase().includes("nariño")) {
-        esNariño = true;
-        break;
-      }
-    }
-  }
-
-  if (!esNariño) {
-    errorDiv.textContent = "⚠️ Solo ubicaciones en Nariño permitidas";
-    errorDiv.style.display = 'block';
-    document.getElementById(campo).value = '';
-  }
-}
-
-function colocarOrigenClic(pos) {
-  document.getElementById("origen").value = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
-  new google.maps.Marker({
-    position: pos,
-    map: map,
-    title: "Origen doble clic",
-    icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-  });
-  map.setCenter(pos);
-  map.setZoom(16);
-}
-
-function ponerMiUbicacion() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const pos = { lat, lng };
-        const userLatLng = new google.maps.LatLng(lat, lng);
-        
-        if (!LIMITES_NARIÑO || !LIMITES_NARIÑO.contains(userLatLng)) {
-          alert("⚠️ Tu ubicación actual no está en el departamento de Nariño. Por favor, ingresá una ubicación manualmente.");
-          return;
-        }
-        
-        if (markerUbicacion) {
-          markerUbicacion.setMap(null);
-        }
-        
-        markerUbicacion = new google.maps.Marker({
-          position: pos,
-          map: map,
-          title: "Tu ubicación",
-          icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-        });
-        
-        new google.maps.Geocoder().geocode({ location: pos }, (results, status) => {
-          if (status === "OK" && results[0]) {
-            const direccion = results[0].formatted_address;
-            document.getElementById("origen").value = `${direccion} (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
-          } else {
-            document.getElementById("origen").value = `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-          }
-        });
-        
-        map.setCenter(pos);
-        map.setZoom(18);
-      },
-      (error) => {
-        let mensaje = "No se pudo obtener tu ubicación";
-        if (error.code === error.PERMISSION_DENIED) {
-          mensaje = "⚠️ Permiso de geolocalización denegado.";
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          mensaje = "⚠️ Información de ubicación no disponible.";
-        } else if (error.code === error.TIMEOUT) {
-          mensaje = "⚠️ La solicitud de ubicación expiró.";
-        }
-        alert(mensaje);
-      },
-      { 
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-      }
-    );
-  } else {
-    alert("Tu navegador no soporta geolocalización");
-  }
-}
-
-function buscarRuta() {
-  const origenTexto = document.getElementById("origen").value.trim();
-  const destinoTexto = document.getElementById("destino").value.trim();
-  const modo = document.getElementById("modo").value;
-
-  if (!origenTexto || !destinoTexto) {
-    alert("Completá origen y destino");
-    return;
-  }
-
-  directionsService.route(
-    {
-      origin: origenTexto,
-      destination: destinoTexto,
-      travelMode: google.maps.TravelMode[modo],
-      unitSystem: google.maps.UnitSystem.METRIC,
-      language: "es-419",
-    },
-    (result, status) => {
-      if (status === "OK") {
-        directionsRenderer.setDirections(result);
-        const leg = result.routes[0].legs[0];
-        const tiempo = leg.duration.text;
-        const distancia = leg.distance.text;
-        document.getElementById("resultado").innerHTML =
-          `<b>Llegás en ${tiempo}</b><br>Distancia: ${distancia}`;
-        iniciarSeguimientoDePasos(result.routes[0].legs);
-        rutaActiva = true;
-      } else {
-        document.getElementById("resultado").innerHTML = "No se encontró la ruta.";
-        detenerSeguimiento();
-        rutaActiva = false;
-      }
-    }
-  );
-}
-
-function borrarRuta() {
-  directionsRenderer.setDirections({ routes: [] });
-  detenerSeguimiento();
-  rutaActiva = false;
-  document.getElementById("resultado").innerHTML = "";
-  document.getElementById("destino").value = "";
-  document.getElementById("error-origen").style.display = 'none';
-  document.getElementById("error-destino").style.display = 'none';
-  
-  if (markerUbicacion) {
-    markerUbicacion.setMap(null);
-    markerUbicacion = null;
-  }
-}
-
-function iniciarSeguimientoDePasos(legs) {
-  pasos = [];
-  legs.forEach((leg) => {
-    leg.steps.forEach((step) => {
-      pasos.push({
-        lat: step.end_location.lat(),
-        lng: step.end_location.lng(),
-        instruccion: step.instructions,
-        distancia: step.distance.text,
-      });
-    });
-  });
-  indiceActual = 0;
-  mostrarPasoActual();
-
-  if (watchId) navigator.geolocation.clearWatch(watchId);
-  watchId = navigator.geolocation.watchPosition(
-    (pos) => {
-      const userLat = pos.coords.latitude;
-      const userLng = pos.coords.longitude;
-      verificarSiguientePaso(userLat, userLng);
-    },
-    () => {},
-    { enableHighAccuracy: true, timeout: 3000, maximumAge: 1000 }
-  );
-}
-
-function mostrarPasoActual() {
-  if (pasos.length === 0) return;
-  const paso = pasos[indiceActual];
-  const icono = iconoDeInstruccion(paso.instruccion);
-  document.getElementById("pasoActual").innerHTML =
-    `${icono} ${paso.instruccion} <span style="color:#666">(${paso.distancia})</span>`;
-  document.getElementById("pasoActual").style.display = "block";
-}
-
-function verificarSiguientePaso(lat, lng) {
-  if (indiceActual >= pasos.length - 1) return;
-  const siguiente = pasos[indiceActual + 1];
-  const dist = google.maps.geometry.spherical.computeDistanceBetween(
-    new google.maps.LatLng(lat, lng),
-    new google.maps.LatLng(siguiente.lat, siguiente.lng)
-  );
-  if (dist < 50) {
-    indiceActual++;
-    mostrarPasoActual();
-  }
-}
-
-function iconoDeInstruccion(text) {
-  const lower = text.toLowerCase();
-  if (lower.includes("izquierda")) return "⬅";
-  if (lower.includes("derecha")) return "➡";
-  if (lower.includes("continúe") || lower.includes("siga")) return "⬆";
-  if (lower.includes("recto")) return "⬆";
-  if (lower.includes("u")) return "🔄";
-  if (lower.includes("salida")) return "↗";
-  return "➡";
-}
-
-function detenerSeguimiento() {
-  if (watchId) navigator.geolocation.clearWatch(watchId);
-  watchId = null;
-  document.getElementById("pasoActual").style.display = "none";
-}
-
-// ========== INSTRUCCIONES PARA DESACTIVAR AL FINAL ==========
-/*
-Para desactivar la opción de agregar puntos cuando termines:
-1. En CSS, oculta el botón:
-   #btnAgregarPunto { display: none !important; }
-
-2. En app.js, comenta estas líneas:
-   - map.addListener("click", (e) => { ... });
-   - btnAgregarPunto.addEventListener('click', toggleModoAgregarPunto);
-   
-Los puntos guardados en localStorage permanecerán visibles siempre.
-*/
