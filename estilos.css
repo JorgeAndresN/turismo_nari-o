@@ -190,7 +190,7 @@ body {
   transform: translateY(0);
 }
 
-/* ========== BOTÓN MI UBICACIÓN ========== */
+/* BOTÓN MI UBICACIÓN */
 .btn-ubicar {
   background: #4CAF50;
   color: white;
@@ -201,11 +201,7 @@ body {
   background: #45a049;
 }
 
-.btn-ubicar:active {
-  background: #3d8b40;
-}
-
-/* ========== BOTÓN DE VOZ ========== */
+/* BOTÓN DE VOZ */
 .btn-voz {
   background: #2196F3;
   color: white;
@@ -233,7 +229,7 @@ body {
   }
 }
 
-/* ========== ESTADO DE VOZ ========== */
+/* ESTADO DE VOZ */
 .estado-voz {
   font-size: 12px;
   margin-top: 4px;
@@ -252,47 +248,28 @@ body {
   to { opacity: 1; }
 }
 
-/* ========== BOTÓN AGREGAR PUNTO ========== */
-.modal-btn {
-  background: #FF9800;
-  color: white;
-  margin-top: 8px;
-}
-
-.modal-btn:hover {
-  background: #F57C00;
-}
-
-#btnAgregarPunto.activo {
-  background: #f44336;
-}
-
-#btnAgregarPunto.activo:hover {
-  background: #d32f2f;
-}
-
-/* ========== BOTONES BUSCAR/BORRAR ========== */
-#panel button[onclick="buscarRuta()"] {
+/* BOTONES BUSCAR/BORRAR */
+#btnBuscar {
   background: #2196F3;
   color: white;
   flex: 1;
 }
 
-#panel button[onclick="buscarRuta()"]:hover {
+#btnBuscar:hover {
   background: #1976D2;
 }
 
-#panel button[onclick="borrarRuta()"] {
+#btnBorrar {
   background: #f44336;
   color: white;
   flex: 1;
 }
 
-#panel button[onclick="borrarRuta()"]:hover {
+#btnBorrar:hover {
   background: #d32f2f;
 }
 
-/* ========== RESULTADO ========== */
+/* RESULTADO */
 #resultado {
   margin-top: 8px;
   padding: 8px;
@@ -302,7 +279,7 @@ body {
   border-left: 3px solid #4CAF50;
 }
 
-/* ========== MENSAJES DE ERROR ========== */
+/* MENSAJES DE ERROR */
 .error-message {
   color: #d32f2f;
   font-size: 12px;
@@ -326,13 +303,13 @@ body {
   }
 }
 
-/* ========== MAPA ========== */
+/* MAPA */
 #map {
   width: 100%;
   height: 100%;
 }
 
-/* ========== PASO ACTUAL ========== */
+/* PASO ACTUAL */
 #pasoActual {
   position: absolute;
   bottom: 20px;
@@ -362,227 +339,185 @@ body {
   }
 }
 
-/* ========== MODAL ========== */
-.modal {
+/* ========== PANEL LATERAL AL 50% CON DOS COLUMNAS ========== */
+.panel-lateral {
   display: none;
-  position: fixed;
-  z-index: 10000;
-  left: 0;
+  position: absolute;
   top: 0;
-  width: 100%;
+  right: 0;
+  width: 50%; /* ¡AHORA SOLO OCUPA LA MITAD DE LA PANTALLA! */
   height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  animation: fadeIn 0.3s;
-}
-
-.modal-contenido {
-  background-color: #fff;
-  margin: 5% auto;
-  padding: 24px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 450px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-  animation: slideDown 0.3s;
-  max-height: 90vh;
+  background: #fff;
+  box-shadow: -4px 0 20px rgba(0,0,0,.2);
+  z-index: 1000;
   overflow-y: auto;
+  animation: slideInRight 0.4s;
+  
+  /* GRID DE DOS COLUMNAS */
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 20px;
+  padding: 20px;
 }
 
-.modal-contenido::-webkit-scrollbar {
-  width: 8px;
+/* TÍTULO OCUPA AMBAS COLUMNAS */
+#panelMunicipio h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 20px 0;
+  color: #0066cc;
+  font-size: 24px;
+  text-align: center;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 15px;
 }
 
-.modal-contenido::-webkit-scrollbar-track {
-  background: #f1f1f1;
+/* COLUMNA IZQUIERDA: FOTOS */
+.panel-columna-fotos {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 0;
 }
 
-.modal-contenido::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+.panel-columna-fotos img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  border: 2px solid #e0e0e0;
+  transition: transform 0.3s;
 }
 
-/* ========== BOTÓN CERRAR MODAL ========== */
-.modal-cerrar {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
-  line-height: 20px;
-  transition: color 0.3s;
+.panel-columna-fotos img:hover {
+  transform: scale(1.02);
 }
 
-.modal-cerrar:hover,
-.modal-cerrar:focus {
-  color: #000;
-  transform: scale(1.1);
+/* COLUMNA DERECHA: CONTENIDO */
+.panel-columna-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-/* ========== MENÚ DEL MODAL ========== */
-.modal-menu {
+/* CURIOSIDAD AL PRINCIPIO */
+.municipio-curiosidad {
+  background: #FFF8E1;
+  border: 3px solid #FFC107;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 0;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+}
+
+.municipio-curiosidad h3 {
+  margin: 0 0 10px 0;
+  color: #F57C00;
+  font-size: 18px;
+}
+
+.municipio-curiosidad p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333;
+}
+
+/* SECCIONES VERTICALES */
+.seccion-vertical {
+  padding: 0;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.seccion-vertical:last-of-type {
+  border-bottom: none;
+}
+
+.seccion-vertical h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* CONTENEDOR DE LUGARES */
+.lugares-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 20px 0;
 }
 
-.modal-menu .modal-btn {
-  background: #2196F3;
-  padding: 14px;
-  font-size: 16px;
-  margin: 0;
+/* ITEM DE LUGAR */
+.lugar-item {
+  background: #f9f9f9;
+  border: 2px solid #e3f2fd;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.modal-menu .modal-btn:hover {
-  background: #1976D2;
+.lugar-item:hover {
+  transform: translateX(5px);
+  border-color: #1976D2;
+  background: #e3f2fd;
+  box-shadow: 0 4px 8px rgba(0,0,0,.1);
 }
 
-/* ========== FORMULARIO DEL MODAL ========== */
-.modal-form {
-  margin: 20px 0;
-}
-
-.modal-form label {
+.lugar-item strong {
   display: block;
-  margin-top: 14px;
-  margin-bottom: 6px;
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
+  color: #0066cc;
+  margin-bottom: 5px;
+  font-size: 15px;
 }
 
-.modal-form input[type="text"],
-.modal-form input[type="file"] {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.3s;
+.lugar-item p {
+  margin: 0 0 5px 0;
+  font-size: 13px;
+  color: #555;
 }
 
-.modal-form input[type="text"]:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+.lugar-item small {
+  display: block;
+  font-size: 11px;
+  color: #666;
 }
 
-.modal-form input[type="file"] {
-  padding: 8px;
-  cursor: pointer;
+/* ANIMACIÓN DE ENTRADA */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
-/* ========== BOTONES DEL MODAL ========== */
-.modal-guardar {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  width: 100%;
-  margin-top: 16px;
-  transition: all 0.3s;
-}
-
-.modal-guardar:hover {
-  background: #45a049;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-}
-
-.modal-eliminar {
-  background: #f44336;
-  color: white;
-  border: none;
-  padding: 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  width: 100%;
-  margin-top: 10px;
-  transition: all 0.3s;
-}
-
-.modal-eliminar:hover {
-  background: #d32f2f;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
-}
-
-/* ========== RESPONSIVE ========== */
+/* RESPONSIVE: En móviles se apilan las columnas */
 @media (max-width: 768px) {
-  body {
-    padding: 10px;
+  .panel-lateral {
+    width: 100% !important; /* En móvil ocupa todo */
+    grid-template-columns: 1fr;
   }
   
-  #panel {
-    width: 180px;
-    padding: 8px;
-    top: 70px;
+  .panel-columna-fotos {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 10px;
   }
   
-  #panel input,
-  #panel select,
-  #panel button {
-    font-size: 12px;
-    padding: 6px;
+  .panel-columna-fotos img {
+    min-width: 300px;
+    height: 200px;
   }
   
-  #logoCircle {
-    width: 35px;
-    height: 35px;
+  #panelMunicipio h2 {
+    font-size: 20px;
   }
-  
-  #pasoActual {
-    font-size: 14px;
-    padding: 10px 16px;
-    max-width: 90%;
-  }
-  
-  .modal-contenido {
-    width: 95%;
-    margin: 10% auto;
-    padding: 16px;
-  }
-  
-  #loader-logo {
-    font-size: 36px;
-  }
-}
-
-@media (max-width: 480px) {
-  #panel {
-    width: 160px;
-  }
-  
-  #panel button {
-    padding: 6px;
-    font-size: 11px;
-  }
-  
-  .modal-contenido {
-    margin: 15% auto;
-  }
-}
-
-/* ========== UTILIDADES ========== */
-.hidden {
-  display: none !important;
-}
-
-.visible {
-  display: block !important;
-}
-
-/* ========== LABELS DE MARCADORES ========== */
-.punto-label {
-  background: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  font-weight: bold;
 }

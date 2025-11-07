@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Google Maps – Solo Nariño, Colombia</title>
+  <title>Google Maps – Municipios Turísticos de Nariño</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
   <!-- Pantalla de carga -->
   <div id="loader">
-    <div id="loader-logo">LOGO</div>
+    <div id="loader-logo">NARIÑO</div>
     <div class="dots-container">
       <div class="dot"></div>
       <div class="dot"></div>
@@ -21,7 +21,7 @@
   <!-- Contenido principal -->
   <div id="contenedor">
     <div id="logoCircle">
-      <img src="https://via.placeholder.com/40" alt="Logo">
+      <img src="https://via.placeholder.com/40" alt="Logo Nariño">
     </div>
 
     <div id="panel">
@@ -37,7 +37,7 @@
         <option value="BICYCLING">Bicicleta</option>
       </select>
       
-      <button id="btnUbicar" class="btn-ubicar" onclick="obtenerUbicacionInicial()">
+      <button id="btnUbicar" class="btn-ubicar">
         📍 Mi Ubicación
       </button>
       
@@ -46,41 +46,58 @@
       </button>
       <div id="estadoVoz" class="estado-voz"></div>
       
-      <button id="btnAgregarPunto" class="modal-btn">📍 Agregar Punto</button>
-      
       <div style="display:flex;gap:4px; margin-top: 8px;">
-        <button onclick="buscarRuta()" style="flex:1">Buscar</button>
-        <button onclick="borrarRuta()" style="flex:1">Borrar</button>
+        <button id="btnBuscar" style="flex:1">Buscar</button>
+        <button id="btnBorrar" style="flex:1">Borrar</button>
       </div>
       <div id="resultado" style="margin-top:6px;font-size:13px"></div>
     </div>
     
     <div id="map"></div>
     <div id="pasoActual"></div>
-  </div>
-
-  <!-- Modal -->
-  <div id="modalPunto" class="modal">
-    <div class="modal-contenido">
-      <span class="modal-cerrar">&times;</span>
-      <h2 id="modalTitulo" style="margin-top:0; color:#0066cc;"></h2>
+    
+    <!-- PANEL FLOTANTE AL 70% CON GRID -->
+    <div id="panelMunicipio" class="panel-lateral">
+      <button class="cerrar-panel" onclick="cerrarPanelMunicipio()">×</button>
+      <h2 id="municipioNombre" style="grid-column: 1 / -1;"></h2>
       
-      <div class="modal-menu">
-        <button onclick="verCategoria('hoteles')" class="modal-btn">🏨 Hoteles</button>
-        <button onclick="verCategoria('restaurantes')" class="modal-btn">🍽️ Restaurantes</button>
-        <button onclick="verCategoria('eventos')" class="modal-btn">🎉 Eventos</button>
+      <!-- COLUMNA IZQUIERDA: FOTOS -->
+      <div class="panel-columna-fotos">
+        <img id="municipioFoto1" src="" alt="Foto 1">
+        <img id="municipioFoto2" src="" alt="Foto 2">
+        <img id="municipioFoto3" src="" alt="Foto 3">
+        <img id="municipioFoto4" src="" alt="Foto 4">
+        <img id="municipioFoto5" src="" alt="Foto 5">
+        <img id="municipioFoto6" src="" alt="Foto 6">
+        <img id="municipioFoto7" src="" alt="Foto 7">
       </div>
       
-      <div class="modal-form">
-        <label>Foto del lugar:</label>
-        <input type="file" id="fotoPunto" accept="image/*" style="margin:10px 0; width:100%;">
+      <!-- COLUMNA DERECHA: CONTENIDO -->
+      <div class="panel-columna-contenido">
+        <!-- CURIOSIDAD ARRIBA -->
+        <div class="municipio-curiosidad">
+          <h3>¿Sabías qué?</h3>
+          <p id="municipioCuriosidad"></p>
+        </div>
         
-        <label>Pregunta para visitantes:</label>
-        <input type="text" id="preguntaPunto" placeholder="Ej: ¿Qué te gustó más de este lugar?" style="width:100%; padding:8px;">
+        <!-- SECCIÓN ¿DÓNDE COMER? -->
+        <div class="seccion-vertical">
+          <h3>🍽️ ¿Dónde comer?</h3>
+          <div id="comerLugares" class="lugares-container"></div>
+        </div>
+        
+        <!-- SECCIÓN ¿DÓNDE HOSPEDARSE? -->
+        <div class="seccion-vertical">
+          <h3>🏨 ¿Dónde hospedarse?</h3>
+          <div id="hospedarseLugares" class="lugares-container"></div>
+        </div>
+        
+        <!-- SECCIÓN ¿QUÉ HACER? -->
+        <div class="seccion-vertical">
+          <h3>🎯 ¿Qué hacer?</h3>
+          <div id="hacerLugares" class="lugares-container"></div>
+        </div>
       </div>
-      
-      <button onclick="guardarInfoPunto()" class="modal-guardar">Guardar Información</button>
-      <button onclick="eliminarPuntoActual()" class="modal-eliminar">🗑️ Eliminar Punto</button>
     </div>
   </div>
 
